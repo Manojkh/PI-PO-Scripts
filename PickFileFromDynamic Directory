@@ -1,0 +1,111 @@
+writelog ()
+
+{
+
+time_stamp=`date +%Y/%m/%d-%H:%M:%S`
+
+echo "${time_stamp} $1" >> $logfile
+
+}
+
+archive function
+
+do_archive ()
+
+{
+
+reten_days=35
+
+writelog "Deleting log files older than $reten_days days." 0
+
+find $logdir -type f -name ${scriptnm%%.sh}"log".\* -mtime +${reten_days} -exec rm {} \;
+
+}
+
+move dir function
+
+move_dir ()
+
+{
+
+ls -1 $source_dir/Payment_* >/dev/null 2>&1 ||
+
+{
+
+writelog "No directories to transfer"
+
+return
+
+}
+
+ls -1 $source_dir | while read dirnm
+
+do
+
+[[ -d ${source_dir}/${dirnm} ]] || continue
+
+tmpdirnm=${dirnm%%_*}
+
+[[ ${tmpdirnm} = Payment ]] || continue
+
+writelog "Moving ${source_dir}/${dirnm} to ${dest_dir}/${dirnm}"
+
+echo "Moving ${source_dir}/${dirnm} to ${dest_dir}/${dirnm}"
+
+mv ${source_dir}/${dirnm} ${dest_dir}/${dirnm}
+
+retcode=$?
+
+if [ $retcode -eq 0 ]
+
+then
+
+writelog "Changing permissions for ${dest_dir}/${dirnm} to 775"
+
+chmod -R 775 ${dest_dir}/${dirnm}
+
+ls -1 ${dest_dir}/${dirnm} | while read file
+
+do
+
+writelog "File ${file} has been moved to ${dest_dir}/${dirnm}"
+
+echo "File ${file} has been moved to ${dest_dir}/${dirnm}"
+
+done
+
+else
+
+writelog "Move of ${source_dir}/${dirnm} to ${dest_dir}/${dirnm} has failed and needs investigating"
+
+fi
+
+done
+
+}
+
+Variable and call of function
+
+thishost=$( uname -n )
+
+scriptnm=$(basename $0)
+
+basedir="base dir in which all source and target exist"
+
+source_dir="${basedir}/file path"
+
+dest_dir="destination dir"
+
+logdir="${basedir}/log path"
+
+timestamp=$(date +"%Y%m%d%H%M%S")
+
+#support=support email address
+
+logfile=${logdir}/${scriptnm%%.sh}"log".${timestamp}
+
+move_dir
+
+do_archive
+
+exit 0
